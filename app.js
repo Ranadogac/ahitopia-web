@@ -16,7 +16,7 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+//const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 const port = 3000;
@@ -47,7 +47,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // 3. PASSPORT GOOGLE STRATEJİSİ
-passport.use(new GoogleStrategy({
+/*passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: "http://localhost:3000/auth/google/callback"
@@ -81,7 +81,7 @@ passport.use(new GoogleStrategy({
 
 passport.serializeUser((user, done) => { done(null, user); });
 passport.deserializeUser((user, done) => { done(null, user); });
-
+*/
 // 4. E-POSTA AYARLARI
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -164,7 +164,7 @@ app.get('/search', async (req, res) => {
 });
 
 // --- AUTH İŞLEMLERİ ---
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+/*app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: '/?error=google_fail' }),
@@ -173,7 +173,7 @@ app.get('/auth/google/callback',
     res.redirect(`/?google_login=true`);
   }
 );
-
+*/
 app.post('/register', async (req, res) => {
     const { email, password, role } = req.body;
     try {
