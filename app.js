@@ -734,7 +734,7 @@ app.use((err, req, res, next) => {
 // GÜNCELLENMİŞ ADMIN KONTROL KODU (HATAYI GÖSTEREN VERSİYON)
 function adminKontrol(req, res, next) {
     // BURAYA KENDİ MAİLİNİ YAZ (Hepsini küçük harfle yaz) 👇
-    const ADMIN_EMAIL = "senin_gercek_mailin@gmail.com"; 
+    const ADMIN_EMAIL = "dogac.rana@ogr.ahievran.edu.tr"; 
 
     // 1. Kullanıcı giriş yapmış mı?
     if (!req.isAuthenticated() || !req.user) {
