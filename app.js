@@ -84,7 +84,9 @@ passport.deserializeUser((user, done) => { done(null, user); });
 */
 // 4. E-POSTA AYARLARI
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Bu bazen sorun çıkarır
+    host: 'smtp.gmail.com',  // Gmail sunucusu
+    port: 465,               // Güvenli port
+    secure: true,            // SSL kullanımı
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
