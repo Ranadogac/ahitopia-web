@@ -731,88 +731,39 @@ app.use((err, req, res, next) => {
         <a href="/">Ana Sayfaya Dön</a>
     `);
 });
-// ==========================================
-// 👑 BASİT ADMİN PANELİ (KULLANICI ONAYLAMA)
-// ==========================================
-
-// 1. Önce Admin Kontrolü Yapan Bir Ara Yazılım (Middleware)
+// GÜNCELLENMİŞ ADMIN KONTROL KODU (HATAYI GÖSTEREN VERSİYON)
 function adminKontrol(req, res, next) {
-    // Giriş yapmış mı? VE Mail adresi senin mailin mi?
-    // BURAYA KENDİ MAİL ADRESİNİ YAZMALISIN 👇
-    const ADMIN_EMAIL = "dogac.rana@ogr.ahievran.edu.tr"; 
-    
-    if (req.isAuthenticated() && req.user.email === ADMIN_EMAIL) {
-        return next();
+    // BURAYA KENDİ MAİLİNİ YAZ (Hepsini küçük harfle yaz) 👇
+    const ADMIN_EMAIL = "senin_gercek_mailin@gmail.com"; 
+
+    // 1. Kullanıcı giriş yapmış mı?
+    if (!req.isAuthenticated() || !req.user) {
+        return res.send("<h1>⛔ Önce Siteye Giriş Yapmalısın!</h1><a href='/login'>Giriş Yap</a>");
     }
-    res.send("<h1>⛔ Yetkisiz Giriş! Bu sayfa sadece site sahibine aittir.</h1>");
+
+    // 2. Mail kontrolü (Büyük küçük harf duyarlılığını kaldırıyoruz)
+    // Sistemin gördüğü mail ile senin yazdığın maili kıyaslıyoruz
+    const girisYapanMail = req.user.email.trim().toLowerCase();
+    const patronMaili = ADMIN_EMAIL.trim().toLowerCase();
+
+    if (girisYapanMail === patronMaili) {
+        return next(); // Geçiş izni verildi
+    }
+
+    // 3. Eğer eşleşmezse ekrana hatayı bas:
+    res.send(`
+        <div style="font-family: sans-serif; padding: 50px; text-align: center;">
+            <h1 style="color: red;">⛔ Yetkisiz Giriş!</h1>
+            <p>Sistem senin mailini şu olarak görüyor: <br> <strong>${req.user.email}</strong></p>
+            <hr>
+            <p>Ama app.js kodunda izin verilen mail şu: <br> <strong>${ADMIN_EMAIL}</strong></p>
+            <hr>
+            <h3>Çözüm:</h3>
+            <p>Lütfen app.js dosyasındaki <b>ADMIN_EMAIL</b> kısmını, yukarıda koyu renkli yazan mail adresinle BİREBİR aynı yap.</p>
+            <a href="/">Ana Sayfaya Dön</a>
+        </div>
+    `);
 }
-
-// 2. Kullanıcıları Listeleme Sayfası
-app.get('/admin/users', adminKontrol, async (req, res) => {
-    try {
-        const User = require('./models/User'); // Model yolun farklıysa düzelt
-        const users = await User.findAll(); // Tüm kullanıcıları çek
-        
-        // Basit bir HTML tablosu oluşturup gönderiyoruz (EJS dosyasıyla uğraşma diye)
-        let html = `
-            <style>
-                body { font-family: sans-serif; padding: 20px; }
-                table { border-collapse: collapse; width: 100%; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                .btn { padding: 5px 10px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px; }
-                .badge { padding: 5px; background-color: #eee; border-radius: 4px; }
-            </style>
-            <h1>👑 Yönetici Paneli - Kullanıcı Listesi</h1>
-            <p>Hoşgeldin Patron. Buradan kullanıcıların rollerini değiştirebilirsin.</p>
-            <table>
-                <tr>
-                    <th>ID</th>
-                    <th>İsim</th>
-                    <th>Email</th>
-                    <th>Mevcut Rol</th>
-                    <th>İşlem</th>
-                </tr>
-        `;
-
-        users.forEach(user => {
-            html += `
-                <tr>
-                    <td>${user.id}</td>
-                    <td>${user.name || 'İsimsiz'}</td>
-                    <td>${user.email}</td>
-                    <td><span class="badge">${user.role}</span></td>
-                    <td>
-                        ${user.role === 'organizer' 
-                            ? '✅ Zaten Organizatör' 
-                            : `<a href="/admin/make-organizer/${user.id}" class="btn">Organizatör Yap</a>`
-                        }
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += `</table><br><a href="/">🏠 Ana Sayfaya Dön</a>`;
-        res.send(html);
-
-    } catch (error) {
-        res.send("Hata: " + error.message);
-    }
-});
-
-// 3. Kullanıcıyı Organizatör Yapma İşlemi
-app.get('/admin/make-organizer/:id', adminKontrol, async (req, res) => {
-    try {
-        const User = require('./models/User');
-        await User.update(
-            { role: 'organizer' },
-            { where: { id: req.params.id } }
-        );
-        res.redirect('/admin/users'); // İşlem bitince listeye geri dön
-    } catch (error) {
-        res.send("Güncelleme hatası: " + error.message);
-    }
-});
 // ==========================================
 app.listen(port, () => {
     console.log(`🚀 AhiTopia Sunucusu Yayında: http://localhost:${port}`);
