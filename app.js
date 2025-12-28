@@ -28,12 +28,6 @@ sequelize.sync({ force: false }).then(() => {
     console.error("❌ Veritabanı Hatası:", err);
 });
 
-// IYZICO AYARLARI (DÜZELTİLDİ)
-const iyzipay = new Iyzipay({
-    apiKey: process.env.IYZICO_API_KEY,
-    secretKey: process.env.IYZICO_SECRET_KEY,
-    uri: process.env.IYZICO_BASE_URL
-});
 
 // 2. AYARLAR & MIDDLEWARE
 app.set('view engine', 'ejs');
