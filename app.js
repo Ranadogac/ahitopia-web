@@ -195,7 +195,7 @@ app.post('/register', async (req, res) => {
 
         const verifyLink = `http://localhost:3000/verify/${token}`;
         transporter.sendMail({
-            from: '"AhiTopia" <no-reply@ahitopia.com>',
+            from: `"AhiTopia" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Hesap Doğrulama',
             html: `<p>Hesabını doğrula: <a href="${verifyLink}">Doğrula</a></p>`
