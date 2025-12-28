@@ -739,7 +739,7 @@ app.use((err, req, res, next) => {
 function adminKontrol(req, res, next) {
     // Giriş yapmış mı? VE Mail adresi senin mailin mi?
     // BURAYA KENDİ MAİL ADRESİNİ YAZMALISIN 👇
-    const ADMIN_EMAIL = "seninmailadresin@gmail.com"; 
+    const ADMIN_EMAIL = "dogac.rana@ogr.ahievran.edu.tr"; 
     
     if (req.isAuthenticated() && req.user.email === ADMIN_EMAIL) {
         return next();
