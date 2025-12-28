@@ -17,7 +17,6 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const Iyzipay = require('iyzipay'); // Iyzico Paketi
 
 const app = express();
 const port = 3000;
