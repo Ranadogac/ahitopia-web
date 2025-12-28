@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilet Kontrol Terminali | AhiTopia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/web.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        /* Sayfa Düzeni */
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at center, #1a1a2e 0%, #000 70%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Ana Kart (Glassmorphism Efekti) */
+        .scanner-wrapper {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .header-title {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            align-items: center; justify-content: center; gap: 10px;
+        }
+
+        /* --- QR KÜTÜPHANESİ STİL EZME (EN ZOR KISIM) --- */
+        #reader {
+            border: none !important;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 25px;
+        }
+        
+        /* Kütüphanenin kendi butonlarını hedef alıp güzelleştiriyoruz */
+        #reader button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+            color: white !important;
+            border: none !important;
+            padding: 12px 24px !important;
+            border-radius: 50px !important;
+            font-weight: bold !important;
+            font-family: var(--font-body) !important;
+            cursor: pointer !important;
+            margin-top: 10px !important;
+            transition: 0.3s !important;
+            width: 100%;
+            font-size: 1rem;
+        }
+        #reader button:hover {
+            box-shadow: 0 0 20px var(--primary) !important;
+            transform: scale(1.02);
+        }
+        /* "Dosya Seç" linkini butona benzet */
+        #reader__dashboard_section_swaplink {
+            display: inline-block;
+            margin-top: 15px;
+            color: var(--accent) !important;
+            text-decoration: none !important;
+            font-weight: bold;
+            border-bottom: 1px dashed var(--accent);
+            padding-bottom: 2px;
+        }
+
+        /* --- SONUÇ KUTUSU --- */
+        .result-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 140px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .status-icon { font-size: 3.5rem; margin-bottom: 10px; transition: 0.3s; }
+        .status-msg { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: white; }
+        .status-detail { color: #aaa; font-size: 0.9rem; }
+
+        /* Durum Renkleri ve Animasyonlar */
+        .result-box.valid {
+            border: 2px solid #00ff88; background: rgba(0, 255, 136, 0.15);
+            animation: pulseGreen 1s infinite alternate;
+        }
+        .result-box.valid .status-msg { color: #00ff88; }
+        
+        .result-box.invalid {
+            border: 2px solid #ff4444; background: rgba(255, 68, 68, 0.15);
+            animation: shake 0.4s;
+        }
+        .result-box.invalid .status-msg { color: #ff4444; }
+
+        .result-box.used {
+            border: 2px solid #ffbb00; background: rgba(255, 187, 0, 0.15);
+        }
+        .result-box.used .status-msg { color: #ffbb00; }
+
+        @keyframes pulseGreen { from { box-shadow: 0 0 10px #00ff88; } to { box-shadow: 0 0 25px #00ff88; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        /* --- MANUEL GİRİŞ --- */
+        .manual-input-group {
+            display: flex; gap: 10px; margin-top: 25px;
+            background: rgba(255,255,255,0.05); padding: 5px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .manual-input-group input {
+            flex: 1; background: none; border: none; padding: 12px 20px; color: white; outline: none;
+        }
+        .manual-btn {
+            background: var(--primary); color: white; border: none;
+            padding: 10px 25px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+        .manual-btn:hover { background: var(--secondary); box-shadow: 0 0 15px var(--secondary); }
+
+        /* Geri Dön Butonu */
+        .btn-back-dash {
+            display: inline-flex; align-items: center; gap: 10px;
+            margin-top: 30px; color: #aaa; text-decoration: none;
+            padding: 10px 20px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.3s;
+        }
+        .btn-back-dash:hover { background: rgba(255,255,255,0.1); color: white; border-color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="scanner-wrapper">
+        <div class="header-title">
+            <i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i>
+            <span>Bilet Kontrol Terminali</span>
+        </div>
+
+        <div id="reader"></div>
+
+        <div id="result-box" class="result-box">
+            <div class="status-icon" style="opacity:0.5;">📷</div>
+            <div class="status-msg">Hazır</div>
+            <div class="status-detail">Bileti kameraya gösterin veya kodu girin.</div>
+        </div>
+        
+        <div class="manual-input-group">
+            <input type="text" id="manual-code" placeholder="Bilet Kodunu Yazın (Örn: AHI-123)">
+            <button class="manual-btn" onclick="checkTicket(document.getElementById('manual-code').value)">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
+
+        <a href="/dashboard" class="btn-back-dash">
+            <i class="fa-solid fa-arrow-left"></i> Panele Dön
+        </a>
+    </div>
+
+    <script>
+        // Ses Efektleri
+        const soundSuccess = new Audio('https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.m4a');
+        const soundFail = new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.m4a');
+
+        let isProcessing = false; // Üst üste okumayı engellemek için
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (isProcessing) return; // Zaten işlem yapılıyorsa bekle
+            isProcessing = true;
+            console.log(`Kod Okundu: ${decodedText}`);
+            checkTicket(decodedText);
+            
+            // 2 saniye sonra tekrar okumaya hazır ol
+            setTimeout(() => { isProcessing = false; }, 2000);
+        }
+
+        function checkTicket(code) {
+            if(!code || code.trim() === "") {
+                isProcessing = false; return;
+            }
+
+            const box = document.getElementById('result-box');
+            box.className = 'result-box'; // Renkleri sıfırla
+            box.innerHTML = '<div class="status-icon">⏳</div><div class="status-msg" style="color:white;">Sorgulanıyor...</div>';
+
+            fetch('/api/check-ticket', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ticketCode: code.trim() })
+            })
+            .then(res => res.json())
+            .then(data => {
+                let icon = '❓';
+                
+                if(data.status === 'valid') { 
+                    icon = '<i class="fa-solid fa-circle-check"></i>'; 
+                    soundSuccess.currentTime = 0; soundSuccess.play().catch(()=>{}); // Hata verirse yoksay (tarayıcı engeli)
+                }
+                else if(data.status === 'used') { 
+                    icon = '<i class="fa-solid fa-circle-exclamation"></i>'; 
+                    soundFail.currentTime = 0; soundFail.play().catch(()=>{});
+                }
+                else { 
+                    icon = '<i class="fa-solid fa-circle-xmark"></i>'; 
+                    soundFail.currentTime = 0; soundFail.play().catch(()=>{});
+                }
+
+                box.className = `result-box ${data.status}`;
+                box.innerHTML = `
+                    <div class="status-icon">${icon}</div>
+                    <div class="status-msg">${data.message}</div>
+                    <div class="status-detail">${data.detail || ''}</div>
+                `;
+            })
+            .catch(err => {
+                console.error(err);
+                box.innerHTML = '<div class="status-msg text-danger">Bağlantı Hatası!</div>';
+                isProcessing = false;
+            });
+        }
+
+        // Kamerayı Başlat (Ayarlarla Oynandı)
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: {width: 250, height: 250}, // Kare şeklinde tarama alanı
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA] // Sadece kamera, dosya seçimi gizlensin (daha temiz)
+            }, 
+            /* verbose= */ false);
+        html5QrcodeScanner.render(onScanSuccess);
+        
+        // Kütüphanenin oluşturduğu çirkin "Stop Scanning" butonunu Türkçeleştirip güzelleştirelim
+        setTimeout(() => {
+             const stopBtn = document.querySelector('#reader__dashboard_section_csr button');
+             if(stopBtn) stopBtn.innerText = "Kamerayı Durdur / Başlat";
+        }, 1000);
+    </script>
+</body>
+</html>

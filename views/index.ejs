@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AhiTopia | Sınırları Aş</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Audiowide&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="web.css">
+    
+    <style>
+        .glass-search-bar {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .search-item { flex: 1; display: flex; align-items: center; padding: 0 15px; }
+        .search-item .icon { font-size: 1.1rem; color: #6366f1; margin-right: 12px; }
+        .input-group { display: flex; flex-direction: column; width: 100%; }
+        .input-group label { font-size: 0.7rem; font-weight: 700; color: #94a3b8; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-group input, .input-group select { background: transparent; border: none; color: white; font-size: 0.95rem; font-weight: 500; outline: none; width: 100%; padding: 0; }
+        .input-group select { cursor: pointer; -webkit-appearance: none; appearance: none; }
+        .input-group input::placeholder { color: #555; }
+        .divider { width: 1px; height: 35px; background: rgba(255,255,255,0.1); }
+        .search-btn {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white; border: none; border-radius: 50px; padding: 12px 25px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+            white-space: nowrap; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .search-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5); }
+        .search-btn:active { transform: scale(0.95); }
+        
+        .user-avatar-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        /* Iyzico Modal Özelleştirmesi */
+        #payment-modal .modal-content-wrapper {
+            background: white; /* Iyzico formu beyaz zemin sever */
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .glass-search-bar { flex-direction: column; border-radius: 20px; padding: 20px; margin-top: 10px; gap: 15px; }
+            .divider { display: none; }
+            .search-item { width: 100%; padding: 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; }
+            .search-item:last-of-type { border-bottom: none; }
+            .search-btn { width: 100%; justify-content: center; margin-top: 10px; }
+            
+            .nav-divider { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay" class="overlay hidden"></div>
+    <div id="sidebar-overlay" class="overlay hidden" onclick="closeAllSidebars()"></div>
+    
+    <div id="auth-modal" class="modal hidden">
+        <button id="close-modal" onclick="closeAuthModal()">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    
+        <div id="login-container">
+            <div class="modal-header">
+                <h3>Giriş Yap</h3>
+                <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">AhiTopia dünyasına geri dön.</p>
+            </div>
+            
+            <form id="login-form" class="auth-form">
+                <div class="input-group">
+                    <i class="fa-regular fa-envelope"></i>
+                    <input type="email" name="email" placeholder="E-posta Adresi" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" name="password" placeholder="Şifre" required>
+                </div>
+                
+                <button type="submit" class="btn btn-full btn-primary btn-glow">Giriş Yap</button>
+                
+                <div class="divider"><span>VEYA</span></div>
+                
+                <a href="/auth/google" class="btn-social google">
+                    <i class="fa-brands fa-google"></i> Google ile Devam Et
+                </a>
+    
+                <p style="text-align:center; margin-top:20px; font-size:0.9rem; color:#888;">
+                    Hesabın yok mu? 
+                    <a href="#" onclick="switchAuthMode('register')" style="color:var(--accent); font-weight:bold; text-decoration:none;">Kayıt Ol</a>
+                </p>
+            </form>
+        </div>
+    
+        <div id="register-container" class="hidden">
+            <div class="modal-header">
+                <h3>Kayıt Ol</h3>
+                <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">Sınırları aşmaya başla.</p>
+            </div>
+    
+            <form id="register-form" class="auth-form">
+                
+                <div class="role-switch-container">
+                    <label class="role-option">
+                        <input type="radio" name="role" value="user" checked>
+                        <span><i class="fa-solid fa-ticket"></i> Bilet Al</span>
+                    </label>
+                    <label class="role-option">
+                        <input type="radio" name="role" value="organizer">
+                        <span><i class="fa-solid fa-crown"></i> Organizatör</span>
+                    </label>
+                </div>
+    
+                <div class="input-group">
+                    <i class="fa-regular fa-envelope"></i>
+                    <input type="email" name="email" placeholder="E-posta Adresi" required>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="reg-password" name="password" placeholder="Şifre Oluştur" required>
+                </div>
+    
+                <div class="password-rules" style="margin-bottom:15px; font-size:0.8rem; color:#666;">
+                    <div id="rule-length" class="rule-item"><i class="fa-solid fa-circle-dot" style="font-size:0.5rem; margin-right:5px;"></i> En az 8 karakter</div>
+                    <div id="rule-upper" class="rule-item"><i class="fa-solid fa-circle-dot" style="font-size:0.5rem; margin-right:5px;"></i> Büyük harf</div>
+                    <div id="rule-number" class="rule-item"><i class="fa-solid fa-circle-dot" style="font-size:0.5rem; margin-right:5px;"></i> Rakam</div>
+                </div>
+    
+                <button type="submit" id="register-btn" class="btn btn-full btn-primary btn-glow" disabled style="opacity:0.5; cursor:not-allowed;">Kayıt Ol</button>
+                
+                <p style="text-align:center; margin-top:20px; font-size:0.9rem; color:#888;">
+                    Zaten hesabın var mı? 
+                    <a href="#" onclick="switchAuthMode('login')" style="color:var(--accent); font-weight:bold; text-decoration:none;">Giriş Yap</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <header id="navbar">
+        <div class="container nav-container" style="display: flex; justify-content: space-between; align-items: center;">
+            
+            <a href="/" class="logo">AHI<span class="neon-text">TOPIA</span></a>
+            
+            <div class="search-wrapper">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Etkinlik, konser ara...">
+                </div>
+            </div>
+    
+            <div class="nav-right">
+                
+                <div id="guest-actions" class="auth-buttons">
+                    <button onclick="openLoginModal()" class="btn btn-primary btn-sm">Giriş Yap</button>
+                </div>
+    
+                <div id="user-actions" class="hidden" style="display:flex; align-items:center;">
+    
+                    <button onclick="openCreateModal()" id="create-event-btn" class="hidden" 
+                            style="
+                                margin-right: 0; 
+                                padding: 8px 20px; 
+                                font-size: 0.9rem; 
+                                display: flex; 
+                                align-items: center; 
+                                gap: 8px;
+                                background: linear-gradient(45deg, #6366f1, #8b5cf6);
+                                border: none;
+                                border-radius: 50px;
+                                color: white;
+                                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+                                cursor: pointer;
+                                transition: transform 0.2s ease;
+                            "
+                            onmouseover="this.style.transform='translateY(-2px)'"
+                            onmouseout="this.style.transform='translateY(0)'">
+                        <i class="fa-solid fa-plus-circle"></i> <span>Etkinlik Oluştur</span>
+                    </button>
+                
+                    <div class="nav-divider" style="width: 1px; height: 30px; background: rgba(255,255,255,0.15); margin: 0 25px;"></div>
+
+                    <div class="user-dropdown-container" style="position: relative;">
+                        
+                        <div class="user-avatar-btn" style="
+                            cursor: pointer; 
+                            display: flex; 
+                            align-items: center; 
+                            padding: 5px 10px 5px 5px; 
+                            border-radius: 50px; 
+                            transition: background-color 0.3s;
+                        ">
+                            <span id="user-initials" style="
+                                width: 38px; 
+                                height: 38px; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                background: #fbbf24; 
+                                color: #000; 
+                                border-radius: 50%; 
+                                font-weight: 700;
+                                box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+                            ">U</span>
+                            <i class="fa-solid fa-chevron-down" style="font-size: 0.75rem; margin-left: 8px; color: #94a3b8;"></i>
+                        </div>
+                    
+                        <div class="dropdown-menu">
+                            <% if (user && user.role === 'organizer') { %>
+                                <a href="/dashboard" class="dropdown-item" style="color: var(--accent);">
+                                    <i class="fa-solid fa-chart-line"></i> Yönetim Paneli
+                                </a>
+                                <div class="dropdown-divider"></div>
+                            <% } %>
+                            <a href="/my-tickets" class="dropdown-item">
+                                <i class="fa-solid fa-ticket"></i> Biletlerim
+                            </a>
+                            <a href="/profile" class="dropdown-item">
+                                <i class="fa-solid fa-user"></i> Hesabım
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" onclick="logout()" class="dropdown-item text-danger">
+                                <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+    
+        </div>
+    </header>
+
+    <section id="poster-slider">
+        <div id="slider-bg-blur"></div>
+        <div class="slider-mask"></div>
+
+        <div class="container poster-container">
+            <div class="slider-track" id="track">
+                
+                <div class="poster-card active" data-bg="assets/arkaplan.jpg">
+                    <img src="assets/emircankonser.jpg">
+                    <div class="poster-info">
+                        <span class="poster-tag">MÜZİK</span>
+                        <h3>Emircan İĞREK Konseri</h3>
+                        <a href="#marketplace" class="btn-icon-play"><i class="fa-solid fa-ticket"></i></a>
+                    </div>
+                </div>
+
+                <div class="poster-card" data-bg="assets/tiyatro1.jpg">
+                    <img src="assets/tiyatro1.jpg" alt="Etkinlik 2">
+                    <div class="poster-info">
+                        <span class="poster-tag" style="background:var(--secondary)">TİYATRO</span>
+                        <h3>Bir Delinin Hatıra Defteri</h3>
+                        <a href="#marketplace" class="btn-icon-play"><i class="fa-solid fa-ticket"></i></a>
+                    </div>
+                </div>
+
+                <div class="poster-card" data-bg="assets/dumankonser.jpg">
+                    <img src="assets/dumankonser.jpg" alt="Etkinlik 3">
+                    <div class="poster-info">
+                        <span class="poster-tag" style="background:var(--accent); color:black">MÜZİK</span>
+                        <h3>DUMAN KONSERİ</h3>
+                        <a href="#marketplace" class="btn-icon-play"><i class="fa-solid fa-ticket"></i></a>
+                    </div>
+                </div>
+
+                <div class="poster-card" data-bg="assets/sinema2.jpg">
+                    <img src="assets/sinema2.jpg" alt="Etkinlik 4">
+                    <div class="poster-info">
+                        <span class="poster-tag" style="background:orange; color:black">SPOR</span>
+                        <h3>Büyük Final</h3>
+                        <a href="#marketplace" class="btn-icon-play"><i class="fa-solid fa-ticket"></i></a>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="slider-controls">
+                <button id="prev-slide"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="slider-dots" id="dots-container"></div>
+                <button id="next-slide"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </section>
+
+    <div class="search-wrapper" style="position: relative; margin-top: -35px; z-index: 10; padding: 0 20px; margin-bottom: 40px;">
+        <div class="container">
+            <div class="glass-search-bar">
+                <div class="search-item">
+                    <i class="fa-solid fa-location-dot icon"></i>
+                    <div class="input-group">
+                        <label>Nerede?</label>
+                        <input type="text" id="filter-city" placeholder="Şehir ara...">
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="search-item">
+                    <i class="fa-solid fa-layer-group icon"></i>
+                    <div class="input-group">
+                        <label>Kategori</label>
+                        <select id="filter-category">
+                            <option value="all">Tüm Etkinlikler</option>
+                            <option value="Müzik">Müzik</option>
+                            <option value="Tiyatro">Tiyatro</option>
+                            <option value="Eğitim">Eğitim</option>
+                            <option value="Spor">Spor</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="search-item">
+                    <i class="fa-solid fa-wallet icon"></i>
+                    <div class="input-group">
+                        <label>Bütçe (Max)</label>
+                        <input type="number" id="filter-price" placeholder="Örn: 500">
+                    </div>
+                </div>
+                <button id="btn-apply-filter" class="search-btn">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Sonuçları Göster</span>
+                </button>
+            </div>
+            <div style="text-align: right; margin-top: 10px; padding-right: 10px;">
+                <a href="javascript:void(0)" onclick="clearFilters()" style="color: #aaa; text-decoration: none; font-size: 0.85rem; opacity: 0.8;">
+                    <i class="fa-solid fa-rotate-left"></i> Filtreleri Temizle
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <section id="categories" class="section-padding">
+        <div class="container">
+            <h2 class="section-title">Kategorilere Göz At</h2>
+            <div class="category-grid">
+                <div class="cat-card active" data-cat="all">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>Tümü</span>
+                </div>
+                <div class="cat-card" data-cat="Müzik">
+                    <i class="fa-solid fa-music"></i>
+                    <span>Müzik</span>
+                </div>
+                <div class="cat-card" data-cat="Tiyatro">
+                    <i class="fa-solid fa-masks-theater"></i>
+                    <span>Tiyatro</span>
+                </div>
+                <div class="cat-card" data-cat="Eğitim">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Eğitim</span>
+                </div>
+                <div class="cat-card" data-cat="Spor">
+                    <i class="fa-solid fa-basketball"></i>
+                    <span>Spor</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="marketplace" class="section-padding bg-darker">
+        <div class="container">
+            <div class="section-header">
+                <div>
+                    <h2 class="title-decoration">Etkinlikler</h2>
+                    <p class="subtitle">İster resmi gişeden, ister kullanıcıdan al.</p>
+                </div>
+                <div class="tabs">
+                    <button class="tab-btn active" data-target="official">Resmi Biletler</button>
+                    <button class="tab-btn" data-target="secondary">İkincil Pazar</button>
+                </div>
+            </div>
+
+            <div id="events-grid" class="events-grid"></div>
+            
+            <div class="load-more-container">
+                <button id="load-more" class="btn btn-outline">Daha Fazla Yükle</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="featured" class="section-padding">
+        <div class="container featured-wrapper">
+            <div class="featured-image">
+                <img src="assets/workshop.jpg" alt="Özel Etkinlik" onerror="this.src='https://images.unsplash.com/photo-1533174072545-e8d4aa97edf9?q=80&w=1000'">
+            </div>
+            <div class="featured-content">
+                <span class="badge-mini">BÜYÜK FIRSAT</span>
+                <h2>Yazılım Kampı 2025</h2>
+                <p>Türkiye'nin en kapsamlı yazılım kampına son biletler! Kariyerini değiştirmek için bu fırsatı kaçırma.</p>
+                <div class="countdown-timer">
+                    <div class="time-box">
+                        <span id="days">00</span>
+                        <small>Gün</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="hours">00</span>
+                        <small>Saat</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="minutes">00</span>
+                        <small>Dakika</small>
+                    </div>
+                    <div class="time-box">
+                        <span id="seconds">00</span>
+                        <small>Saniye</small>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-glow">Hemen Yerini Ayırt</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="newsletter-section">
+        <div class="container">
+            <div class="newsletter-box">
+                <div class="news-text">
+                    <h3>Gelişmelerden Haberdar Ol</h3>
+                    <p>En yeni etkinlikler ve indirim kodları için bültene abone ol.</p>
+                </div>
+                <form class="news-form">
+                    <input type="email" placeholder="E-posta adresin...">
+                    <button type="submit" class="btn btn-primary">Abone Ol</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <h3>AHI<span>TOPIA</span></h3>
+                <p>Bilgisayar Mühendisliği Web Projesi &copy; 2025</p>
+            </div>
+            <div class="footer-links">
+                <a href="#">Hakkımızda</a>
+                <a href="#">Gizlilik</a>
+                <a href="#">İletişim</a>
+            </div>
+            <div class="socials">
+                <a href="#"><i class="fa-brands fa-twitter"></i></a>
+                <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#"><i class="fa-brands fa-github"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <div id="ticket-modal" class="modal hidden">
+        <button class="close-btn" onclick="closeTicketModal()">&times;</button>
+        
+        <div class="modal-header">
+            <h3 id="modal-event-title">Etkinlik Detayı</h3>
+        </div>
+    
+        <div class="modal-tabs" style="display:flex; justify-content:center; gap:15px; margin-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">
+            <button onclick="switchModalTab('ticket')" id="tab-ticket" class="tab-active" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer; padding-bottom:5px; border-bottom:2px solid var(--primary);">Bilet Al</button>
+            <button onclick="switchModalTab('reviews')" id="tab-reviews" style="background:none; border:none; color:#888; font-weight:bold; cursor:pointer;">Yorumlar</button>
+        </div>
+    
+        <div id="content-ticket">
+            <div class="screen-container">
+                <div class="screen">SAHNE</div>
+            </div>
+            <div id="seat-map" class="seat-map"></div>
+            <ul class="showcase">
+                <li><div class="seat"></div><small>Boş</small></li>
+                <li><div class="seat selected"></div><small>Seçili</small></li>
+                <li><div class="seat sold"></div><small>Dolu</small></li>
+            </ul>
+            <div class="ticket-details">
+                <p class="text-center" style="margin-bottom:10px;">
+                    Seçilen Koltuklar: <span id="selected-seats-display" style="color:var(--accent); font-weight:bold;">Yok</span>
+                </p>
+                <div class="total-price-box">
+                    <span>Toplam Tutar:</span>
+                    <span id="total-price" style="color: var(--accent);">0₺</span>
+                </div>
+                <button onclick="buySeats()" class="btn btn-full" style="background: var(--primary); margin-top: 10px; border: 1px solid white;">
+                    🎟️ KOLTUKLARI ONAYLA VE AL
+                </button>
+            </div>
+        </div>
+
+        <div id="content-reviews" class="hidden">
+            <div id="reviews-list" style="max-height:200px; overflow-y:auto; margin-bottom:20px; padding-right:5px;"></div>
+            <div class="add-review-box" style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px;">
+                <h4 style="margin-bottom:10px; font-size:0.9rem;">Yorum Yap</h4>
+                <div class="star-rating" style="display:flex; gap:5px; margin-bottom:10px; font-size:1.2rem; cursor:pointer;">
+                    <i class="fa-regular fa-star star-btn" data-val="1" onclick="setRating(1)"></i>
+                    <i class="fa-regular fa-star star-btn" data-val="2" onclick="setRating(2)"></i>
+                    <i class="fa-regular fa-star star-btn" data-val="3" onclick="setRating(3)"></i>
+                    <i class="fa-regular fa-star star-btn" data-val="4" onclick="setRating(4)"></i>
+                    <i class="fa-regular fa-star star-btn" data-val="5" onclick="setRating(5)"></i>
+                </div>
+                <textarea id="review-comment" placeholder="Deneyimini paylaş..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid #333; color:white; border-radius:5px; padding:10px; margin-bottom:10px;"></textarea>
+                <button onclick="submitReview()" class="btn btn-primary btn-sm" style="width:100%;">Gönder</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cart-sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>Sepetim</h3>
+            <button class="close-sidebar" onclick="toggleSidebar('cart-sidebar')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="sidebar-content" id="cart-items"></div>
+        <div class="sidebar-footer">
+            <div class="cart-total">
+                <span>Toplam:</span>
+                <span id="cart-total-price">0₺</span>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="startIyzicoPayment()">Ödemeyi Tamamla</button>
+        </div>
+    </div>
+
+    <div id="fav-sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>Favorilerim</h3>
+            <button class="close-sidebar" onclick="toggleSidebar('fav-sidebar')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="sidebar-content" id="fav-items"></div>
+    </div>
+
+    <div id="create-event-modal" class="modal hidden">
+        <div class="modal-header">
+            <h3>Yeni Etkinlik Oluştur</h3>
+            <button onclick="closeCreateModal()" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <form id="create-event-form" action="/add-event" method="POST" class="auth-form">
+            <div class="input-group" style="margin-top: 15px;">
+                <i class="fa-solid fa-certificate"></i>
+                <select name="type" required style="background:none; border:none; color:white; width:100%;">
+                    <option value="official">Resmi Bilet (Gişe)</option>
+                    <option value="secondary">İkinci El (Kullanıcı)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <i class="fa-solid fa-tag"></i>
+                <input type="text" name="title" placeholder="Etkinlik Adı" required>
+            </div>
+            <div class="form-row" style="display:flex; gap:10px;">
+                <div class="input-group">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <select name="cat" required style="background:none; border:none; color:white; width:100%;">
+                        <option value="Müzik">Müzik</option>
+                        <option value="Tiyatro">Tiyatro</option>
+                        <option value="Eğitim">Eğitim</option>
+                        <option value="Spor">Spor</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lira-sign"></i>
+                    <input type="number" name="price" placeholder="Fiyat" required>
+                </div>
+            </div>
+            <div class="form-row" style="display:flex; gap:10px;">
+                <div class="input-group">
+                    <i class="fa-regular fa-calendar"></i>
+                    <input type="text" name="date" placeholder="GG.AA.YYYY (Örn: 25.12.2025)" required>
+                </div>
+                <div class="input-group">
+                    <i class="fa-regular fa-clock"></i>
+                    <input type="time" name="time" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <i class="fa-solid fa-users"></i>
+                <input type="number" name="capacity" placeholder="Kapasite" required>
+            </div>
+            <div class="input-group">
+                <i class="fa-solid fa-location-dot"></i>
+                <input type="text" name="loc" placeholder="Konum (veya Online)" required>
+            </div>
+            <div class="input-group">
+                <i class="fa-regular fa-image"></i>
+                <input type="url" name="img" placeholder="Resim URL (Boş bırakılabilir)">
+            </div>
+            <button type="submit" class="btn btn-full btn-primary btn-glow">Etkinliği Yayınla</button>
+        </form>
+    </div>
+
+    <script>
+        // Veritabanı verilerini JS'e aktar
+        window.eventsDB = <%- (typeof biletler !== 'undefined' && biletler) ? JSON.stringify(biletler) : '[]' %>;
+        window.serverUser = <%- (typeof user !== 'undefined' && user) ? JSON.stringify(user) : 'null' %>;
+
+        // Form submit animasyonu
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function() {
+                const btn = this.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.disabled = true;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> İşleniyor...';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }, 10000);
+                }
+            });
+        });
+    </script>
+    
+    <script src="/web.js"></script>
+
+</body>
+</html>

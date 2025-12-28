@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biletlerim | AhiTopia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/web.css">
+    
+    <style>
+        /* ÖZEL BİLET TASARIMI (Senin Eski Kodların) */
+        .tickets-container { max-width: 900px; margin: 120px auto 50px; padding: 20px; }
+        
+        .ticket-card {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            display: flex; /* Yatay şerit olması için */
+            overflow: hidden;
+            margin-bottom: 30px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: 0.3s;
+            color: white; /* Metin rengi */
+        }
+        .ticket-card:hover { 
+            transform: translateY(-5px); 
+            border-color: var(--primary); 
+            box-shadow: 0 15px 40px rgba(79, 70, 229, 0.2);
+        }
+        
+        /* Sol Taraf (Bilgiler) */
+        .ticket-left { 
+            flex: 2;
+            padding: 25px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            border-right: 2px dashed rgba(255,255,255,0.1); 
+            position: relative;
+        }
+        
+        /* "Delik" Efekti */
+        .ticket-left::after, .ticket-left::before {
+            content: '';
+            position: absolute; right: -10px; width: 20px; height: 20px;
+            background: var(--bg-dark, #0f0f1a); /* Arka plan rengiyle aynı olmalı */
+            border-radius: 50%;
+        }
+        .ticket-left::before { top: -10px; }
+        .ticket-left::after { bottom: -10px; }
+
+        .ticket-event-name { 
+            font-family: 'Orbitron', sans-serif; /* Varsa font */
+            font-size: 1.5rem; 
+            font-weight: bold;
+            color: white; 
+            margin-bottom: 10px;
+        }
+        .ticket-meta { 
+            display: flex; 
+            flex-wrap: wrap;
+            gap: 15px; 
+            color: #aaa; 
+            font-size: 0.9rem; 
+            margin-bottom: 15px;
+        }
+        .ticket-meta span { display: flex; align-items: center; gap: 5px; }
+        .ticket-meta i { color: var(--accent, #d97706); }
+
+        /* Sağ Taraf (QR) */
+        .ticket-right { 
+            flex: 1;
+            background: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; 
+            text-align: center;
+            position: relative;
+        }
+        .qr-img { width: 100px; height: 100px; object-fit: contain; }
+        .ticket-code { 
+            color: #333; 
+            font-weight: bold; 
+            font-family: monospace; 
+            letter-spacing: 1px; 
+            margin-top: 5px;
+            font-size: 0.9rem; 
+        }
+
+        /* Geçmiş Etkinlik Stili */
+        .past-ticket { opacity: 0.6; filter: grayscale(100%); }
+        .past-ticket:hover { transform: none; box-shadow: none; filter: grayscale(0%); opacity: 1; }
+
+        /* Mobil Uyum */
+        @media (max-width: 768px) {
+            .ticket-card { flex-direction: column; }
+            .ticket-left { border-right: none; border-bottom: 2px dashed rgba(255,255,255,0.1); }
+            .ticket-left::after, .ticket-left::before { display: none; }
+        }
+
+        /* Sekme Tasarımı */
+        .nav-tabs { border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }
+        .nav-link { color: #aaa; background: transparent; border: none; font-size: 1.1rem; }
+        .nav-link.active { 
+            color: white !important; 
+            background: transparent !important; 
+            border-bottom: 2px solid var(--primary, #4f46e5) !important;
+            font-weight: bold;
+        }
+        .nav-link:hover { color: white; }
+    </style>
+</head>
+<body>
+    
+    <header id="navbar" style="background: rgba(10,10,10,0.9); padding: 15px 0; position: fixed; top: 0; width: 100%; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 0 5%;">
+        <a href="/" class="logo" style="text-decoration: none; font-size: 1.5rem; font-weight: bold; color: white;">AHI<span style="color: #4f46e5;">TOPIA</span></a>
+        <a href="/profile" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-arrow-left"></i> Profile Dön</a>
+    </header>
+
+    <div class="tickets-container">
+        <h2 class="mb-4 text-white">Biletlerim</h2>
+    
+        <ul class="nav nav-tabs" id="ticketTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button">
+                    <i class="fa-solid fa-ticket"></i> Yaklaşan Etkinlikler
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Etkinlikler
+                </button>
+            </li>
+        </ul>
+    
+        <div class="tab-content" id="ticketTabsContent">
+    
+            <div class="tab-pane fade show active" id="upcoming">
+                <% if(upcoming.length === 0) { %> 
+                    <div class="alert alert-dark border-secondary text-white">
+                        <i class="fa-solid fa-circle-info"></i> Yaklaşan bir etkinliğiniz bulunmuyor.
+                    </div> 
+                <% } %>
+                
+                <% upcoming.forEach(ticket => { %>
+                    <div class="ticket-card">
+                        <div class="ticket-left">
+                            <div class="ticket-event-name"><%= ticket.event_title %></div>
+                            
+                            <div class="ticket-meta">
+                                <div class="ticket-meta">
+                                    <span><i class="fa-regular fa-calendar"></i> <%= new Date(ticket.event_date).toLocaleDateString('tr-TR') %></span>
+                                    <span><i class="fa-regular fa-clock"></i> <%= ticket.event_time %></span> <span><i class="fa-solid fa-location-dot"></i> <%= ticket.event_loc %></span>
+                                </div>
+                            </div>
+                            
+                            <div class="ticket-meta">
+                                <span class="text-warning"><i class="fa-solid fa-couch"></i> Koltuk: <b><%= ticket.seat_numbers || 'Ayakta' %></b></span>
+                                <span><i class="fa-solid fa-tag"></i> <%= ticket.price %>₺</span>
+                            </div>
+
+                            <a href="/download-ticket/<%= ticket.ticket_code %>" class="btn btn-primary btn-sm mt-2" style="width: fit-content; background-color: #4f46e5; border: none;">
+                                <i class="fa-solid fa-file-pdf"></i> PDF Bilet İndir
+                            </a>
+                        </div>
+                        
+                        <div class="ticket-right">
+                            <img src="<%= ticket.qr_url %>" class="qr-img" alt="QR Kod">
+                            <div class="ticket-code"><%= ticket.ticket_code %></div>
+                            <span class="badge bg-success mt-2">AKTİF</span>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+    
+            <div class="tab-pane fade" id="past">
+                <% if(past.length === 0) { %> 
+                    <div class="alert alert-dark border-secondary text-white">
+                        Geçmiş etkinliğiniz bulunmuyor.
+                    </div> 
+                <% } %>
+
+                <% past.forEach(ticket => { %>
+                    <div class="ticket-card past-ticket">
+                        <div class="ticket-left">
+                            <div class="ticket-event-name"><%= ticket.event_title %></div>
+                            <div class="ticket-meta">
+                                <span><i class="fa-regular fa-calendar"></i> <%= new Date(ticket.event_date).toLocaleDateString('tr-TR') %></span>
+                                <span><i class="fa-solid fa-location-dot"></i> <%= ticket.event_loc %></span>
+                            </div>
+                            <div class="text-muted mt-2">
+                                <i class="fa-solid fa-check-circle"></i> Bu etkinlik tamamlandı.
+                            </div>
+                            
+                            <a href="/download-ticket/<%= ticket.ticket_code %>" class="btn btn-outline-light btn-sm mt-3" style="width: fit-content;">
+                                <i class="fa-solid fa-box-archive"></i> Arşiv (PDF)
+                            </a>
+                        </div>
+                        
+                        <div class="ticket-right" style="background: #ccc;">
+                            <img src="<%= ticket.qr_url %>" class="qr-img" style="opacity: 0.2;">
+                            <div class="ticket-code text-muted"><%= ticket.ticket_code %></div>
+                            <span class="badge bg-secondary mt-2">SÜRESİ DOLDU</span>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+    
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="/web.js"></script>
+</body>
+</html>

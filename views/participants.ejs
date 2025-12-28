@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Katılımcı Listesi | AhiTopia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/web.css">
+    <style>
+        body { background-color: #050505; }
+        .dashboard-container { display: flex; min-height: 100vh; margin-top: 70px; }
+        .sidebar { width: 250px; background: #111; padding: 20px; border-right: 1px solid #222; position: fixed; height: 100%; top: 70px; left: 0; }
+        .sidebar-menu { list-style: none; margin-top: 20px; }
+        .sidebar-menu li { margin-bottom: 10px; }
+        .sidebar-menu a { display: flex; align-items: center; gap: 10px; padding: 12px; color: #aaa; border-radius: 8px; transition: 0.3s; }
+        .sidebar-menu a:hover, .sidebar-menu a.active { background: var(--primary); color: white; }
+        .main-content { flex: 1; padding: 30px; margin-left: 250px; }
+        
+        /* TABLO */
+        .table-container { background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #333; color: #ddd; }
+        th { color: #888; font-size: 0.85rem; text-transform: uppercase; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        .badge { background: #333; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: var(--accent); }
+    </style>
+</head>
+<body>
+    <header id="navbar">
+        <div class="container nav-container">
+            <a href="/" class="logo">AHI<span class="neon-text">TOPIA</span></a>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="color:#aaa; font-size:0.9rem;">Organizatör Paneli</span>
+                <a href="/" class="btn btn-outline btn-sm">Siteye Dön</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="/dashboard"><i class="fa-solid fa-chart-pie"></i> Özet Rapor</a></li>
+                <li><a href="/"><i class="fa-solid fa-plus-circle"></i> Etkinlik Ekle (Siteye Dön)</a></li>
+                <li><a href="/dashboard/participants" class="active"><i class="fa-solid fa-users"></i> Katılımcılar</a></li>
+                <li><a href="/verify-ticket" style="color:#ff4444;"><i class="fa-solid fa-qrcode"></i> Bilet Kontrol</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <h2 class="section-title" style="text-align:left; margin-bottom:20px;">Bilet Alanlar Listesi</h2>
+
+            <div class="table-container">
+                <% if (list.length === 0) { %>
+                    <p style="text-align:center; color:#666;">Henüz hiç bilet satılmamış.</p>
+                <% } else { %>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Bilet Kodu</th>
+                                <th>Etkinlik</th>
+                                <th>Müşteri</th>
+                                <th>Koltuklar</th>
+                                <th>Tutar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% list.forEach(item => { %>
+                            <tr>
+                                <td><strong style="color:white; font-family:monospace;"><%= item.ticket_code %></strong></td>
+                                <td><%= item.event_title %></td>
+                                <td>
+                                    <%= item.buyer_name %> <%= item.buyer_surname %>
+                                    <br><small style="color:#666;"><%= item.buyer_email %></small>
+                                </td>
+                                <td>
+                                    <% if(item.seat_numbers) { %>
+                                        <span class="badge"><%= item.seat_numbers %></span>
+                                    <% } else { %>
+                                        <span style="color:#666;">Genel Giriş</span>
+                                    <% } %>
+                                </td>
+                                <td style="color:var(--accent); font-weight:bold;"><%= item.price %>₺</td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } %>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
