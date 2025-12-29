@@ -1,3 +1,7 @@
+// ==========================================
+// AHITOPHIA - APP.JS (SUNUM/KONTROL İÇİN DÜZELTİLMİŞ VERSİYON)
+// ==========================================
+
 // 1. GEREKLİ PAKETLER
 require('dotenv').config();
 const { sequelize, User, Event, Order, SeatBooking, Review } = require('./models'); 
@@ -7,7 +11,7 @@ const express = require('express');
 const PDFDocument = require('pdfkit');
 const bodyParser = require('body-parser');
 const path = require('path');
-const nodemailer = require('nodemailer'); // Mail paketi dursa da kullanmayacağız
+const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
@@ -41,7 +45,11 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 4. E-POSTA AYARLARI (Kod hata vermesin diye duruyor ama mail atmayacağız)
+// Passport serialize/deserialize (Oturum yönetimi için gerekli)
+passport.serializeUser((user, done) => { done(null, user); });
+passport.deserializeUser((user, done) => { done(null, user); });
+
+// 4. E-POSTA AYARLARI (Kod hata vermesin diye duruyor, kullanılmayacak)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
@@ -128,7 +136,7 @@ app.get('/search', async (req, res) => {
     }
 });
 
-// --- YENİ KAYIT ROTASI (MAİL YOK, DİREKT ONAY VAR) ---
+// --- YENİ KAYIT ROTASI (OTOMATİK ONAYLI) ---
 app.post('/register', async (req, res) => {
     try {
         const { name, email, password, role } = req.body; 
@@ -136,26 +144,24 @@ app.post('/register', async (req, res) => {
         // 1. Kullanıcı zaten var mı kontrol et
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
-            // Frontend'e düzgün hata dönmek için
             return res.send("<script>alert('Bu mail adresi zaten kayıtlı.'); window.history.back();</script>");
         }
 
         // 2. Şifreleme
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. KULLANICIYI OLUŞTUR (DÜZELTME BURADA YAPILDI)
-        // isVerified yerine veritabanındaki doğru isim olan is_verified kullanıldı.
+        // 3. KULLANICIYI OLUŞTUR (DÜZELTİLDİ: is_verified ve is_organizer_approved)
         await User.create({
             name: name,
             email: email,
             password: hashedPassword,
-            role: role || 'user',
-            is_verified: true,          // <--- ARTIK DOĞRU SÜTUN İSMİ
-            is_organizer_approved: true // <--- ORGANİZATÖRLER DE DİREKT ONAYLI
+            role: role || 'user', 
+            // ⬇️ BURASI KRİTİK: İsimleri veritabanı modelinle birebir aynı yaptık.
+            is_verified: true,           
+            is_organizer_approved: true  
         });
 
         // 4. Direkt Giriş Sayfasına Yönlendir
-        // Kullanıcıyı direkt login sayfasına atıyoruz
         res.redirect('/login?success=KayitBasarili');
 
     } catch (error) {
@@ -164,11 +170,12 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// Doğrulama linki gelirse diye (artık kullanılmayacak ama eski linkler hata vermesin)
+// Eski doğrulama linki (Artık gereksiz ama hata vermesin diye yönlendiriyoruz)
 app.get('/verify/:token', async (req, res) => {
-     res.redirect('/');
+    res.redirect('/');
 });
 
+// --- GİRİŞ ROTASI (ENGELSİZ) ---
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -176,9 +183,10 @@ app.post('/login', async (req, res) => {
         if (user) {
             if (!user.password) return res.json({ success: false, message: 'Lütfen Google ile giriş yapın.' });
             
-            // --- BURADAKİ KONTROLLERİ KALDIRDIK Kİ SORUNSUZ GİRİŞ OLSUN ---
-            // if (!user.is_verified) ...
-            // if (user.role === 'organizer' && !user.is_organizer_approved) ...
+            // ⬇️ DİKKAT: Onay kontrollerini kaldırdık, şifre doğruysa girsin.
+            /* if (!user.is_verified) ...
+            if (user.role === 'organizer' && !user.is_organizer_approved) ...
+            */
 
             const isMatch = await bcrypt.compare(password, user.password);
             if (isMatch) {
@@ -199,13 +207,16 @@ app.get('/logout', (req, res) => {
     req.session.destroy(() => { res.redirect('/'); });
 });
 
+
 // ==========================================
 // 💳 BASİT ÖDEME SİMÜLASYONU (DEMO MODU)
 // ==========================================
+
 app.post('/start-payment', async (req, res) => {
     const { cartItems } = req.body;
     const currentUser = req.session.user || req.user;
 
+    // 1. Güvenlik Kontrolleri
     if (!currentUser) return res.json({ status: 'fail', errorMessage: 'Oturum açmalısınız.' });
     if (!cartItems || cartItems.length === 0) return res.json({ status: 'fail', errorMessage: 'Sepet boş.' });
 
@@ -214,6 +225,7 @@ app.post('/start-payment', async (req, res) => {
     try {
         const fakePaymentId = 'DEMO-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
 
+        // 2. Koltukları 'Dolu' (sold) olarak işaretle
         const bookingData = cartItems.map(item => ({
             event_id: item.id,
             seat_label: item.seatLabel,
@@ -221,9 +233,11 @@ app.post('/start-payment', async (req, res) => {
         }));
         await SeatBooking.bulkCreate(bookingData, { transaction: t });
 
+        // 3. Etkinlik verilerini çek
         const eventIds = [...new Set(cartItems.map(c => c.id))];
         const events = await Event.findAll({ where: { id: eventIds } });
 
+        // 4. Siparişleri Oluştur
         const orderData = cartItems.map(item => {
             const ev = events.find(e => e.id == item.id);
             return {
@@ -239,7 +253,10 @@ app.post('/start-payment', async (req, res) => {
         });
 
         await Order.bulkCreate(orderData, { transaction: t });
+
+        // İşlemi onayla
         await t.commit();
+
         res.json({ status: 'success' });
 
     } catch (err) {
@@ -656,11 +673,15 @@ app.use((err, req, res, next) => {
 });
 
 // ACİL DURUM: MANUEL YETKİ VERME ROTASI
+// (Bunu hala tutuyoruz çünkü acil durum için lazım olabilir, ama normal kayıt zaten çalışıyor)
 app.get('/yetki-ver/:email', async (req, res) => {
     try {
+        const User = require('./models/User'); 
         const emailAdresi = req.params.email; 
+
+        // Veritabanında güncelle
         const sonuc = await User.update(
-            { role: 'organizer', is_organizer_approved: true }, // Organizer yaparken onayını da ver
+            { role: 'organizer', is_organizer_approved: true }, 
             { where: { email: emailAdresi } }
         );
 
@@ -668,10 +689,14 @@ app.get('/yetki-ver/:email', async (req, res) => {
             res.send(`
                 <h1 style="color:green">✅ İŞLEM BAŞARILI!</h1>
                 <h3>${emailAdresi}</h3>
-                <p>Artık bir <b>ORGANİZATÖR</b> ve hesabı onaylı.</p>
+                <p>Artık bir <b>ORGANİZATÖR</b>.</p>
+                <p>Lütfen bu kullanıcı çıkış yapıp tekrar giriş yapsın.</p>
             `);
         } else {
-            res.send(`<h1 style="color:red">❌ HATA: ${emailAdresi} bulunamadı.</h1>`);
+            res.send(`
+                <h1 style="color:red">❌ HATA: KULLANICI BULUNAMADI</h1>
+                <p><b>${emailAdresi}</b> mail adresiyle kayıtlı kimse yok.</p>
+            `);
         }
     } catch (error) {
         res.send("<h1>Sistem Hatası: " + error.message + "</h1>");
