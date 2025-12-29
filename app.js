@@ -136,37 +136,51 @@ app.get('/search', async (req, res) => {
     }
 });
 
-// --- YENİ KAYIT ROTASI (OTOMATİK ONAYLI) ---
+// ==========================================
+// 🔐 KAYIT OL (REGISTER) ROTASI
+// ==========================================
 app.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role } = req.body; 
+        const { name, surname, email, password, password_confirm } = req.body;
 
-        // 1. Kullanıcı zaten var mı kontrol et
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-            return res.send("<script>alert('Bu mail adresi zaten kayıtlı.'); window.history.back();</script>");
+        // 1. Şifreler eşleşiyor mu kontrol et
+        if (password !== password_confirm) {
+            return res.send('<script>alert("❌ Şifreler eşleşmiyor!"); window.location.href="/";</script>');
         }
 
-        // 2. Şifreleme
+        // 2. Kullanıcı zaten var mı?
+        const existingUser = await User.findOne({ where: { email: email } });
+        if (existingUser) {
+            return res.send('<script>alert("⚠️ Bu e-posta adresi zaten kayıtlı!"); window.location.href="/";</script>');
+        }
+
+        // 3. Şifreyi şifrele (Hash)
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. KULLANICIYI OLUŞTUR (DÜZELTİLDİ: is_verified ve is_organizer_approved)
+        // 4. Kullanıcıyı oluştur
         await User.create({
-            name: name,
-            email: email,
+            name,
+            surname,
+            email,
             password: hashedPassword,
-            role: role || 'user', 
-            // ⬇️ BURASI KRİTİK: İsimleri veritabanı modelinle birebir aynı yaptık.
-            is_verified: true,           
-            is_organizer_approved: true  
+            role: 'user' // Varsayılan rol
         });
 
-        // 4. Direkt Giriş Sayfasına Yönlendir
-        res.redirect('/login?success=KayitBasarili');
+        console.log(`✅ Yeni kullanıcı kayıt oldu: ${email}`);
+
+        // 5. BAŞARILI! Ana sayfaya yönlendir (Sayfa yenilenince buton düzelir)
+        // Kullanıcıya giriş yapması gerektiğini hatırlatabiliriz veya direkt giriş yaptırabiliriz.
+        // Şimdilik giriş yapması için ana sayfaya atıyoruz.
+        res.send(`
+            <script>
+                alert("✅ Kayıt başarılı! Lütfen giriş yapınız.");
+                window.location.href = "/"; 
+            </script>
+        `);
 
     } catch (error) {
-        console.log(error);
-        res.send("Kayıt sırasında hata oluştu: " + error.message);
+        console.error("❌ Kayıt Hatası:", error);
+        res.status(500).send("Sunucu hatası: Kayıt yapılamadı.");
     }
 });
 
