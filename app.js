@@ -1,5 +1,5 @@
 // ==========================================
-// AHITOPHIA - APP.JS (IYZICO PAYMENT VERSION)
+// AHITOPHIA - APP.JS (SUNUM İÇİN HAZIR VERSİYON)
 // ==========================================
 
 // 1. GEREKLİ PAKETLER
@@ -11,12 +11,11 @@ const express = require('express');
 const PDFDocument = require('pdfkit');
 const bodyParser = require('body-parser');
 const path = require('path');
-const nodemailer = require('nodemailer');
+// const nodemailer = require('nodemailer'); // Mail servisini kapattık
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const passport = require('passport');
-//const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 const port = 3000;
@@ -27,7 +26,6 @@ sequelize.sync({ force: false }).then(() => {
 }).catch(err => {
     console.error("❌ Veritabanı Hatası:", err);
 });
-
 
 // 2. AYARLAR & MIDDLEWARE
 app.set('view engine', 'ejs');
@@ -46,55 +44,19 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 3. PASSPORT GOOGLE STRATEJİSİ
-/*passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/google/callback"
-  },
-  async function(accessToken, refreshToken, profile, cb) {
-      try {
-          const email = profile.emails[0].value;
-          const googleId = profile.id;
-          const name = profile.displayName;
-
-          let user = await User.findOne({ where: { email: email } });
-
-          if (user) {
-              return cb(null, user.toJSON());
-          } else {
-              const newUser = await User.create({
-                  email: email,
-                  google_id: googleId,
-                  name: name,
-                  role: 'user',
-                  is_verified: true, 
-                  is_organizer_approved: true
-              });
-              return cb(null, newUser.toJSON());
-          }
-      } catch (err) {
-          return cb(err);
-      }
-  }
-));
-
+// 3. PASSPORT (Şimdilik Google kapalı)
 passport.serializeUser((user, done) => { done(null, user); });
 passport.deserializeUser((user, done) => { done(null, user); });
-*/
-// 4. E-POSTA AYARLARI
+
+// 4. E-POSTA AYARLARI (DEVRE DIŞI BIRAKILDI)
+// Sunum sırasında hata vermemesi için bu kısmı yorum satırı yaptık.
+/*
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // 587 numaralı port için false olmalı
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false // Bazen sertifika hatası verirse bunu görmezden gelmesi için
-    }
+    host: 'smtp.gmail.com', port: 587, secure: false,
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    tls: { rejectUnauthorized: false }
 });
+*/
 
 // ==========================================
 // ROTALAR (ROUTES)
@@ -171,21 +133,10 @@ app.get('/search', async (req, res) => {
     }
 });
 
-// --- AUTH İŞLEMLERİ ---
-/*app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/?error=google_fail' }),
-  function(req, res) {
-    req.session.user = req.user;
-    res.redirect(`/?google_login=true`);
-  }
-);
-*/
-// --- YENİ KAYIT ROTASI (MAİL YOK, DİREKT ONAY VAR) ---
+// --- KAYIT ROTASI (DİREKT ONAYLI) ---
 app.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role } = req.body; // Formdan gelen 'role' bilgisini alıyoruz
+        const { name, email, password, role } = req.body; 
 
         // 1. Kullanıcı zaten var mı kontrol et
         const existingUser = await User.findOne({ where: { email } });
@@ -193,21 +144,22 @@ app.post('/register', async (req, res) => {
             return res.send("Bu mail adresi zaten kayıtlı.");
         }
 
-        // 2. Şifreleme (Eğer bcrypt kullanıyorsan)
+        // 2. Şifreleme
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. KULLANICIYI OLUŞTUR (Mail doğrulaması TRUE, Rol formdan gelen)
+        // 3. KULLANICIYI OLUŞTUR
+        // is_verified: true -> Mail onaylı sayılır
+        // is_organizer_approved: true -> Organizatör ise yönetici onayı beklemez
         await User.create({
             name: name,
             email: email,
             password: hashedPassword,
-            role: role || 'user', // Formdan rol gelmezse standart 'user' yap
-            isVerified: true      // <--- İŞTE BU! Direkt onaylı yapıyoruz.
+            role: role || 'user', 
+            is_verified: true,        
+            is_organizer_approved: true 
         });
 
-        // 4. Mail gönderme kodunu tamamen sildik/atladık.
-        
-        // 5. Direkt Giriş Sayfasına Yönlendir
+        // 4. Giriş sayfasına yönlendir
         res.redirect('/login?success=KayitBasarili');
 
     } catch (error) {
@@ -215,35 +167,18 @@ app.post('/register', async (req, res) => {
         res.send("Kayıt sırasında hata oluştu: " + error.message);
     }
 });
-app.get('/verify/:token', async (req, res) => {
-    try {
-        const user = await User.findOne({ where: { verification_token: req.params.token } });
-        if (user) {
-            user.is_verified = true;
-            user.verification_token = null; 
-            await user.save(); 
-            if (user.role === 'organizer') res.redirect('/?status=wait_approval');
-            else res.redirect('/?status=verified');
-        } else {
-            res.redirect('/?status=error');
-        }
-    } catch (error) {
-        console.error(error);
-        res.redirect('/?status=error');
-    }
-});
 
+// --- GİRİŞ ROTASI (DİREKT GİRİŞ) ---
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await User.findOne({ where: { email: email } });
         if (user) {
-            if (!user.password) return res.json({ success: false, message: 'Lütfen Google ile giriş yapın.' });
-            if (!user.is_verified) return res.json({ success: false, message: 'E-posta doğrulanmamış.' });
-            if (user.role === 'organizer' && !user.is_organizer_approved) return res.json({ success: false, message: 'Hesap onayı bekleniyor.' });
-
+            // Şifre kontrolü
             const isMatch = await bcrypt.compare(password, user.password);
+            
             if (isMatch) {
+                // MAİL VEYA ONAY KONTROLÜ YAPMADAN DİREKT İÇERİ ALIYORUZ
                 req.session.user = user.toJSON(); 
                 res.json({ success: true });
             } else {
@@ -277,7 +212,7 @@ app.post('/start-payment', async (req, res) => {
     const t = await sequelize.transaction();
 
     try {
-        // Rastgele bir ödeme ID'si oluştur (Sanki bankadan gelmiş gibi)
+        // Rastgele bir ödeme ID'si oluştur
         const fakePaymentId = 'DEMO-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
 
         // 2. Koltukları 'Dolu' (sold) olarak işaretle
@@ -288,7 +223,7 @@ app.post('/start-payment', async (req, res) => {
         }));
         await SeatBooking.bulkCreate(bookingData, { transaction: t });
 
-        // 3. Etkinlik verilerini çek (Satıcıyı bulmak için)
+        // 3. Etkinlik verilerini çek
         const eventIds = [...new Set(cartItems.map(c => c.id))];
         const events = await Event.findAll({ where: { id: eventIds } });
 
@@ -301,22 +236,17 @@ app.post('/start-payment', async (req, res) => {
                 event_id: item.id,
                 price: item.price,
                 seller_email: ev ? ev.seller : 'admin@ahitopia.com',
-                status: 'success', // Doğrudan başarılı sayıyoruz
+                status: 'success', 
                 ticket_code: 'AHI-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
                 seat_numbers: item.seatLabel
             };
         });
 
         await Order.bulkCreate(orderData, { transaction: t });
-
-        // İşlemi onayla
         await t.commit();
-
-        // Başarılı cevabı dön
         res.json({ status: 'success' });
 
     } catch (err) {
-        // Hata varsa geri al
         await t.rollback();
         console.error("Demo Ödeme Hatası:", err);
         res.json({ status: 'fail', errorMessage: 'Veritabanı hatası oluştu.' });
@@ -366,6 +296,7 @@ app.post('/add-event', async (req, res) => {
     }
 });
 
+// Silme işlemi için admin kontrolü (İsteğe bağlı olarak açık bıraktık)
 const ADMIN_EMAIL = "dogac.rana@ogr.ahievran.edu.tr"; 
 
 app.post('/delete-event/:id', async (req, res) => {
@@ -728,73 +659,7 @@ app.use((err, req, res, next) => {
         <a href="/">Ana Sayfaya Dön</a>
     `);
 });
-// GÜNCELLENMİŞ ADMIN KONTROL KODU (HATAYI GÖSTEREN VERSİYON)
-function adminKontrol(req, res, next) {
-    // BURAYA KENDİ MAİLİNİ YAZ (Hepsini küçük harfle yaz) 👇
-    const ADMIN_EMAIL = "dogac.rana@ogr.ahievran.edu.tr"; 
 
-    // 1. Kullanıcı giriş yapmış mı?
-    if (!req.isAuthenticated() || !req.user) {
-        return res.send("<h1>⛔ Önce Siteye Giriş Yapmalısın!</h1><a href='/login'>Giriş Yap</a>");
-    }
-
-    // 2. Mail kontrolü (Büyük küçük harf duyarlılığını kaldırıyoruz)
-    // Sistemin gördüğü mail ile senin yazdığın maili kıyaslıyoruz
-    const girisYapanMail = req.user.email.trim().toLowerCase();
-    const patronMaili = ADMIN_EMAIL.trim().toLowerCase();
-
-    if (girisYapanMail === patronMaili) {
-        return next(); // Geçiş izni verildi
-    }
-
-    // 3. Eğer eşleşmezse ekrana hatayı bas:
-    res.send(`
-        <div style="font-family: sans-serif; padding: 50px; text-align: center;">
-            <h1 style="color: red;">⛔ Yetkisiz Giriş!</h1>
-            <p>Sistem senin mailini şu olarak görüyor: <br> <strong>${req.user.email}</strong></p>
-            <hr>
-            <p>Ama app.js kodunda izin verilen mail şu: <br> <strong>${ADMIN_EMAIL}</strong></p>
-            <hr>
-            <h3>Çözüm:</h3>
-            <p>Lütfen app.js dosyasındaki <b>ADMIN_EMAIL</b> kısmını, yukarıda koyu renkli yazan mail adresinle BİREBİR aynı yap.</p>
-            <a href="/">Ana Sayfaya Dön</a>
-        </div>
-    `);
-}
-// --- ACİL DURUM: MANUEL YETKİ VERME ROTASI ---
-// Kullanımı: siteadresi.com/yetki-ver/kullanici@gmail.com
-
-app.get('/yetki-ver/:email', async (req, res) => {
-    try {
-        const User = require('./models/User'); // Model yolun doğru olsun
-        const emailAdresi = req.params.email; // Linkten gelen maili al
-
-        // Veritabanında güncelle
-        const sonuc = await User.update(
-            { role: 'organizer' }, 
-            { where: { email: emailAdresi } }
-        );
-
-        // Sonucu ekrana bas
-        if (sonuc[0] > 0) {
-            res.send(`
-                <h1 style="color:green">✅ İŞLEM BAŞARILI!</h1>
-                <h3>${emailAdresi}</h3>
-                <p>Artık bir <b>ORGANİZATÖR</b>.</p>
-                <p>Lütfen bu kullanıcı çıkış yapıp tekrar giriş yapsın.</p>
-            `);
-        } else {
-            res.send(`
-                <h1 style="color:red">❌ HATA: KULLANICI BULUNAMADI</h1>
-                <p><b>${emailAdresi}</b> mail adresiyle kayıtlı kimse yok.</p>
-                <p>Mail adresini doğru yazdığından emin ol.</p>
-            `);
-        }
-    } catch (error) {
-        res.send("<h1>Sistem Hatası: " + error.message + "</h1>");
-    }
-});
-// -------------------------------------------------
 // ==========================================
 app.listen(port, () => {
     console.log(`🚀 AhiTopia Sunucusu Yayında: http://localhost:${port}`);
