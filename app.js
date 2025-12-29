@@ -182,42 +182,39 @@ app.get('/auth/google/callback',
   }
 );
 */
+// --- YENİ KAYIT ROTASI (MAİL YOK, DİREKT ONAY VAR) ---
 app.post('/register', async (req, res) => {
-    const { email, password, role } = req.body;
     try {
-        const existingUser = await User.findOne({ where: { email: email } });
-        if (existingUser) return res.json({ success: false, message: 'Bu e-posta zaten kayıtlı.' });
+        const { name, email, password, role } = req.body; // Formdan gelen 'role' bilgisini alıyoruz
 
+        // 1. Kullanıcı zaten var mı kontrol et
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+            return res.send("Bu mail adresi zaten kayıtlı.");
+        }
+
+        // 2. Şifreleme (Eğer bcrypt kullanıyorsan)
         const hashedPassword = await bcrypt.hash(password, 10);
-        const token = uuidv4();
-        const isApproved = (role === 'organizer') ? false : true; 
 
+        // 3. KULLANICIYI OLUŞTUR (Mail doğrulaması TRUE, Rol formdan gelen)
         await User.create({
+            name: name,
             email: email,
             password: hashedPassword,
-            role: role,
-            is_verified: false,
-            verification_token: token,
-            is_organizer_approved: isApproved
+            role: role || 'user', // Formdan rol gelmezse standart 'user' yap
+            isVerified: true      // <--- İŞTE BU! Direkt onaylı yapıyoruz.
         });
 
-        const verifyLink = `http://localhost:3000/verify/${token}`;
-        transporter.sendMail({
-            from: `"AhiTopia" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: 'Hesap Doğrulama',
-            html: `<p>Hesabını doğrula: <a href="${verifyLink}">Doğrula</a></p>`
-        }, (mailErr) => {
-            if (mailErr) console.error("Mail Hatası:", mailErr);
-        });
+        // 4. Mail gönderme kodunu tamamen sildik/atladık.
+        
+        // 5. Direkt Giriş Sayfasına Yönlendir
+        res.redirect('/login?success=KayitBasarili');
 
-        res.json({ success: true, message: 'Doğrulama maili gönderildi.' });
     } catch (error) {
-        console.error("Register Hatası:", error);
-        res.json({ success: false, message: 'Sunucu hatası.' });
+        console.log(error);
+        res.send("Kayıt sırasında hata oluştu: " + error.message);
     }
 });
-
 app.get('/verify/:token', async (req, res) => {
     try {
         const user = await User.findOne({ where: { verification_token: req.params.token } });
