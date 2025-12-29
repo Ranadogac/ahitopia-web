@@ -764,6 +764,40 @@ function adminKontrol(req, res, next) {
         </div>
     `);
 }
+// --- ACİL DURUM: MANUEL YETKİ VERME ROTASI ---
+// Kullanımı: siteadresi.com/yetki-ver/kullanici@gmail.com
+
+app.get('/yetki-ver/:email', async (req, res) => {
+    try {
+        const User = require('./models/User'); // Model yolun doğru olsun
+        const emailAdresi = req.params.email; // Linkten gelen maili al
+
+        // Veritabanında güncelle
+        const sonuc = await User.update(
+            { role: 'organizer' }, 
+            { where: { email: emailAdresi } }
+        );
+
+        // Sonucu ekrana bas
+        if (sonuc[0] > 0) {
+            res.send(`
+                <h1 style="color:green">✅ İŞLEM BAŞARILI!</h1>
+                <h3>${emailAdresi}</h3>
+                <p>Artık bir <b>ORGANİZATÖR</b>.</p>
+                <p>Lütfen bu kullanıcı çıkış yapıp tekrar giriş yapsın.</p>
+            `);
+        } else {
+            res.send(`
+                <h1 style="color:red">❌ HATA: KULLANICI BULUNAMADI</h1>
+                <p><b>${emailAdresi}</b> mail adresiyle kayıtlı kimse yok.</p>
+                <p>Mail adresini doğru yazdığından emin ol.</p>
+            `);
+        }
+    } catch (error) {
+        res.send("<h1>Sistem Hatası: " + error.message + "</h1>");
+    }
+});
+// -------------------------------------------------
 // ==========================================
 app.listen(port, () => {
     console.log(`🚀 AhiTopia Sunucusu Yayında: http://localhost:${port}`);
